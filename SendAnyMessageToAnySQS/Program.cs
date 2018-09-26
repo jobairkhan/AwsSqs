@@ -42,25 +42,15 @@ namespace SendAnyMessageToAnySQS
         internal static async Task SendToQ(AWSOptions options, int numberOfMessage)
         {
             var messageCount = 0;
-            var config = new AmazonSQSConfig { RegionEndpoint = options.Region };
-
-            //var client = new AmazonSQSClient("AKIAJZI7XEZ5ALU5V7IQ", "Q4aBb8RcnJ7vslgmx1bN4tm1bJBfmsMZGf+XhdOO", config);
-            //var queueUrl = await GetQueueUrl(client, QUEUE_NAME);
             using (var sqs = options.CreateServiceClient<IAmazonSQS>())
             {
 
                 try
                 {
                     var qUrl = await GetQueueUrl(sqs, QUEUE_NAME);
+                    var proceed = Confirmation(numberOfMessage, qUrl);
 
-                    Console.WriteLine("===========================================");
-                    Console.WriteLine("Preparing to send {0} messages to {1}", numberOfMessage, qUrl);
-                    Console.WriteLine("Enter to proceed");
-                    Console.WriteLine("===========================================\n");
-                    Console.ReadLine();
-
-
-                    while (messageCount < numberOfMessage)
+                    while (proceed && messageCount < numberOfMessage)
                     {
                         await SendBatchMessage(sqs, qUrl, BATCH_SIZE);
 
@@ -77,9 +67,20 @@ namespace SendAnyMessageToAnySQS
                 }
             }
 
-            Console.WriteLine("Total sent {0} messages", messageCount);
+            Console.WriteLine("\r\nTotal sent {0} messages", messageCount);
             Console.WriteLine("Press Enter to exit...");
             Console.ReadLine();
+        }
+
+        private static bool Confirmation(int numberOfMessage, string qUrl)
+        {
+            Console.WriteLine("===========================================");
+            Console.WriteLine("Preparing to send {0} messages to {1}", numberOfMessage, qUrl);
+            Console.Write("Enter Esc to exit OR Enter any key to proceed! ");
+            var key  = Console.ReadKey();
+            if (key.Key == ConsoleKey.Escape) return false;
+            Console.WriteLine("===========================================\n");
+            return true;
         }
 
         private static void ConsoleError(AmazonSQSException ex)
