@@ -12,7 +12,6 @@ namespace SendAnyMessageToAnySQS
 {
     public class Program
     {
-        private static string _sqsName;
         private const int BATCH_SIZE = 10;
 
         /// <summary>
@@ -28,12 +27,12 @@ namespace SendAnyMessageToAnySQS
                 .AddJsonFile("appsettings.json", false, true)
                 .Build();
 
-            _sqsName = config.GetSection("SqsName").Value;
+            var sqsName = config.GetSection("SqsName").Value;
             var options = config.GetAWSOptions();
 
             Console.WriteLine("Profile - {0}", options.Profile);
             Console.WriteLine("Region - {0}", options.Region);
-            Console.WriteLine("Queue - {0}", _sqsName);
+            Console.WriteLine("Queue - {0}", sqsName);
 
             Console.Write("Enter How many Messages (Enter to send default messages): ");
             var numberOfMessageAsStr = args.Length == 0 ? Console.ReadLine() : args[0];
@@ -46,7 +45,7 @@ namespace SendAnyMessageToAnySQS
             bool.TryParse((args.Length > 1 ? args[1] : "false"), out var proceed);
 
 
-            var messageCount = SendToQ(options, numberOfMessage, proceed).GetAwaiter().GetResult();
+            var messageCount = SendToQ(options, sqsName, numberOfMessage, proceed).GetAwaiter().GetResult();
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("\r\nTotal sent {0} messages", messageCount);
@@ -55,14 +54,14 @@ namespace SendAnyMessageToAnySQS
         }
 
 
-        internal static async Task<int> SendToQ(AWSOptions options, int numberOfMessage, bool confirm)
+        internal static async Task<int> SendToQ(AWSOptions options, string sqsQName, int numberOfMessage, bool confirm)
         {
             var messageCount = 0;
             try
             {
                 using (var sqs = options.CreateServiceClient<IAmazonSQS>())
                 {
-                    var qUrl = await GetQueueUrl(sqs, _sqsName);
+                    var qUrl = await GetQueueUrl(sqs, sqsQName);
                     if (!confirm)
                     {
                         confirm = Confirmation(numberOfMessage, qUrl);
