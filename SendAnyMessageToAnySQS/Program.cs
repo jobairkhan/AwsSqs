@@ -11,6 +11,9 @@ namespace SendAnyMessageToAnySQS
 {
     public class Program
     {
+        private static string _sqsName;
+        private const int BATCH_SIZE = 10;
+
         /// <summary>
         /// 
         /// </summary>
@@ -20,14 +23,17 @@ namespace SendAnyMessageToAnySQS
         /// </param>
         public static void Main(string[] args)
         {
-            _config = new ConfigurationBuilder()
+            var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", false, true)
                 .Build();
 
-            var options = _config.GetAWSOptions();
+            _sqsName = config.GetSection("SqsName").Value;
+            var options = config.GetAWSOptions();
+            
 
             Console.WriteLine("Profile - {0}", options.Profile);
             Console.WriteLine("Region - {0}", options.Region);
+            Console.WriteLine("Queue - {0}", _sqsName);
 
             Console.Write("Enter How many Messages (Enter to send default messages): ");
             var numberOfMessageAsStr = args.Length == 0 ? Console.ReadLine() : args[0];
@@ -43,10 +49,6 @@ namespace SendAnyMessageToAnySQS
             SendToQ(options, numberOfMessage, proceed).GetAwaiter().GetResult();
         }
 
-        private static IConfiguration _config;
-        private const string QUEUE_NAME = "db-webhooks_events";
-        private const int BATCH_SIZE = 10;
-        private const string AWS_ACCOUNT_ID = "130075576898";
 
         internal static async Task SendToQ(AWSOptions options, int numberOfMessage, bool confirm)
         {
@@ -56,7 +58,7 @@ namespace SendAnyMessageToAnySQS
 
                 try
                 {
-                    var qUrl = await GetQueueUrl(sqs, QUEUE_NAME);
+                    var qUrl = await GetQueueUrl(sqs, _sqsName);
                     if (!confirm)
                     {
                         confirm = Confirmation(numberOfMessage, qUrl);
@@ -108,8 +110,10 @@ namespace SendAnyMessageToAnySQS
 
             if (response.Successful.Count > 0)
             {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Successfully sent {0} message", response.Successful.Count);
 
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
                 foreach (var success in response.Successful)
                 {
                     Console.WriteLine("  For ID: '" + success.Id + "':");
@@ -123,8 +127,10 @@ namespace SendAnyMessageToAnySQS
 
             if (response.Failed.Count > 0)
             {
+                Console.ForegroundColor = ConsoleColor.DarkMagenta;
                 Console.WriteLine("Failed to be sent:");
-
+                
+                Console.ForegroundColor = ConsoleColor.Magenta;
                 foreach (var fail in response.Failed)
                 {
                     Console.WriteLine("  For ID '" + fail.Id + "':");
@@ -134,6 +140,8 @@ namespace SendAnyMessageToAnySQS
                                       fail.SenderFault);
                 }
             }
+            
+            Console.ForegroundColor = ConsoleColor.White;
         }
 
 
