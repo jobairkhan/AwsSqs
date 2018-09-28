@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Extensions.NETCore.Setup;
@@ -30,33 +31,74 @@ namespace SendAnyMessageToAnySQS
             var sqsName = config.GetSection("SqsName").Value;
             var options = config.GetAWSOptions();
 
+
             Console.WriteLine("Profile - {0}", options.Profile);
             Console.WriteLine("Region - {0}", options.Region);
             Console.WriteLine("Queue - {0}", sqsName);
 
-            Console.Write("Enter How many Messages (Enter to send default messages): ");
-            var numberOfMessageAsStr = args.Length == 0 ? Console.ReadLine() : args[0];
-
-            if (!int.TryParse(numberOfMessageAsStr, out var numberOfMessage))
+            
+            if (!int.TryParse(
+                GetNumberOfMessagesToSend(args, config), 
+                out var numberOfMessage))
             {
                 numberOfMessage = BATCH_SIZE;
             }
 
-            bool.TryParse((args.Length > 1 ? args[1] : "false"), out var proceed);
 
-
-            var messageCount = SendToQ(options, sqsName, numberOfMessage, proceed).GetAwaiter().GetResult();
+            var messageCount =
+                SendToQ(
+                    options,
+                    sqsName,
+                    numberOfMessage,
+                    GetValue(args, config)
+                    ).GetAwaiter()
+                     .GetResult();
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("\r\nTotal sent {0} messages", messageCount);
             Console.WriteLine("Press Enter to exit...");
-            Console.ReadLine();
+            if (args.Length == 0) Console.ReadLine();
+        }
+
+        private static string GetNumberOfMessagesToSend(string[] args, IConfiguration config)
+        {
+            var numberOfMessageAsStr = config.GetSection("NumberOfMessages")?.Value ?? string.Empty;
+
+            if (args.Length > 0)
+            {
+                numberOfMessageAsStr = args[0];
+            }
+            else if(string.IsNullOrWhiteSpace(numberOfMessageAsStr))
+            {
+                Console.Write("Enter How many Messages (Enter to send default messages): ");
+                numberOfMessageAsStr = Console.ReadLine();
+            }
+            
+            return numberOfMessageAsStr;
+        }
+
+        private static bool GetValue(string[] args, IConfiguration config)
+        {
+            var acceptedAnswers = new[] { "yes", "1", "true", "y" };
+            string val = null;
+            if ((args?.Length ?? 0) > 1)
+            {
+                Console.WriteLine("args {0} {1}", args[0], args[1]);
+
+                val = args[1].ToLowerInvariant();
+
+            }
+            else
+            {
+                val = config.GetSection("DoNotPromptConfirmation")?.Value.ToLowerInvariant() ?? "NO";
+            }
+            
+            return acceptedAnswers.Any(x => x == val);
         }
 
         static int _messageCount = 0;
         internal static async Task<int> SendToQ(AWSOptions options, string sqsQName, int numberOfMessage, bool confirm)
         {
-
             try
             {
                 using (var sqs = options.CreateServiceClient<IAmazonSQS>())
