@@ -53,10 +53,10 @@ namespace SendAnyMessageToAnySQS
             Console.ReadLine();
         }
 
-
+        static int _messageCount = 0;
         internal static async Task<int> SendToQ(AWSOptions options, string sqsQName, int numberOfMessage, bool confirm)
         {
-            var messageCount = 0;
+
             try
             {
                 using (var sqs = options.CreateServiceClient<IAmazonSQS>())
@@ -67,15 +67,15 @@ namespace SendAnyMessageToAnySQS
                         confirm = Confirmation(numberOfMessage, qUrl);
                     }
 
-                    while (confirm && messageCount < numberOfMessage)
+                    while (confirm && _messageCount < numberOfMessage)
                     {
-                        var requestMsg = Math.Abs(numberOfMessage - messageCount);
+                        var requestMsg = Math.Abs(numberOfMessage - _messageCount);
 
                         requestMsg = requestMsg > BATCH_SIZE ? BATCH_SIZE : requestMsg;
 
                         await SendBatchMessage(sqs, qUrl, requestMsg);
 
-                        messageCount += requestMsg;
+                        _messageCount += requestMsg;
                     }
 
                 }
@@ -89,7 +89,7 @@ namespace SendAnyMessageToAnySQS
             {
                 Console.WriteLine("Caught Exception: " + ex.Message);
             }
-            return messageCount;
+            return _messageCount;
         }
 
         private static async Task SendBatchMessage(IAmazonSQS amazonSqsClient, string queueUrl, int batchSize)
@@ -102,7 +102,7 @@ namespace SendAnyMessageToAnySQS
 
             for (var i = 0; i < batchSize; i++)
             {
-                request.Entries.Add(CreateNewEntry($"{i}-{batchSize}"));
+                request.Entries.Add(CreateNewEntry($"{i + _messageCount}"));
             }
 
 
@@ -119,7 +119,7 @@ namespace SendAnyMessageToAnySQS
             {
                 DelaySeconds = 0,
                 Id = id,
-                MessageBody = "{\"eventTypeId\":1,\"eventTypeName\":\"Qc\",\"referenceId\":1,\"accounts\":[12],\"body\":{\"fileId\":1,\"versionId\":1,\"statusId\":1,\"statusName\":\"Passed\",\"attributes\":[{\"id\":1,\"name\":\"name\",\"value\":\"a value\"}]}}"
+                MessageBody = "{\"eventTypeId\":1,\"eventTypeName\":\"Qc\",\"referenceId\":1,\"accounts\":[12],\"body\":{\"fileId\":1,\"versionId\":1,\"statusId\":1,\"statusName\":\"Passed\",\"attributes\":[{\"id\":1,\"name\":\"" + Guid.NewGuid() + "\",\"value\":\"" + id + "\"}]}}"
             };
         }
 
