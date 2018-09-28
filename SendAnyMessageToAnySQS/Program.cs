@@ -36,7 +36,7 @@ namespace SendAnyMessageToAnySQS
             Console.WriteLine("Region - {0}", options.Region);
             Console.WriteLine("Queue - {0}", sqsName);
 
-            
+            Console.WriteLine("===========================================");
             if (!int.TryParse(
                 GetNumberOfMessagesToSend(args, config), 
                 out var numberOfMessage))
@@ -70,10 +70,13 @@ namespace SendAnyMessageToAnySQS
             }
             else if(string.IsNullOrWhiteSpace(numberOfMessageAsStr))
             {
-                Console.Write("Enter How many Messages (Enter to send default messages): ");
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.Write("Enter how many Messages (Enter to send default messages): ");
                 numberOfMessageAsStr = Console.ReadLine();
+                Console.ForegroundColor = ConsoleColor.White;
             }
             
+            Console.WriteLine("Number of messages to send : {0}", numberOfMessageAsStr);
             return numberOfMessageAsStr;
         }
 
@@ -90,7 +93,7 @@ namespace SendAnyMessageToAnySQS
             }
             else
             {
-                val = config.GetSection("DoNotPromptConfirmation")?.Value.ToLowerInvariant() ?? "NO";
+                val = config.GetSection("DoNotPromptConfirmation")?.Value?.ToLowerInvariant() ?? "NO";
             }
             
             return acceptedAnswers.Any(x => x == val);
@@ -109,6 +112,7 @@ namespace SendAnyMessageToAnySQS
                         confirm = Confirmation(numberOfMessage, qUrl);
                     }
 
+                    Console.WriteLine($"Sending at {DateTime.UtcNow}:{DateTime.UtcNow.Millisecond}");
                     while (confirm && _messageCount < numberOfMessage)
                     {
                         var requestMsg = Math.Abs(numberOfMessage - _messageCount);
@@ -183,14 +187,19 @@ namespace SendAnyMessageToAnySQS
         {
             Console.WriteLine("===========================================");
             Console.WriteLine("Preparing to send {0} messages to {1}", numberOfMessage, qUrl);
-            Console.Write("Enter Esc to exit OR Enter any key to proceed! ");
+            
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.WriteLine("Enter Esc to exit OR Enter any key to proceed! ");
             var key = Console.ReadKey();
             if (key.Key == ConsoleKey.Escape)
             {
                 Console.WriteLine("No. User chose to exit process");
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
+            Console.WriteLine(" - ");
             Console.WriteLine("Yes");
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("===========================================");
             return true;
         }
