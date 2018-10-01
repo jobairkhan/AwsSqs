@@ -28,6 +28,7 @@ You could pass number of meeages and confirmation as arguments. For example
 ```cmd
 dotnet run 10 y
 ```
+The above command will send 10 messages to the queue
 
 ### EXE
 
