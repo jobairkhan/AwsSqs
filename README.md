@@ -17,13 +17,9 @@ Before using this tool please change the app settings accordingly
 
 ## How to use
 
-### EXE
-
-You can run the exe and follow the process. To run the exe open the command prompt and go to the project location any type `dotnet run`
-
 ### IDE
 
-Open the app from Visual Studio or VSCode and run the application
+You can use any .net core IDE to run the application
 
 ### Command Line
 
@@ -33,4 +29,7 @@ You could pass number of meeages and confirmation as arguments. For example
 dotnet run 10 y
 ```
 
+### EXE
+
+You can also run the exe without any arguments and enter information as requested. To run the exe open the command prompt and go to the project location any type `dotnet run`
  
